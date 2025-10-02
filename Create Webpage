@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dead Pixel Tester</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: white; /* Set the initial background to white */
+            overflow: hidden;
+            cursor: none;
+        }
+        .controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+        }
+        .controls.hidden {
+            display: none;
+        }
+        .controls button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls" id="controls">
+        <button onclick="changeColor(colors.white)">White</button>
+        <button onclick="changeColor(colors.black)">Black</button>
+        <button onclick="changeColor(colors.red)">Red</button>
+        <button onclick="changeColor(colors.green)">Green</button>
+        <button onclick="changeColor(colors.blue)">Blue</button>
+        <button onclick="startManualTest()">Start Manual Test</button>
+        <button onclick="startAutoTest()">Start Auto Test</button>
+        <button onclick="stopTest()">Stop Test</button>
+    </div>
+
+    <script>
+        const colors = {
+            white: '#FFFFFF',
+            black: '#000000',
+            red: '#FF0000',
+            green: '#00FF00',
+            blue: '#0000FF'
+        };
+
+        const colorArray = [colors.white, colors.black, colors.red, colors.green, colors.blue];
+
+        let testInterval;
+        let manualIndex = 0;
+        const controls = document.getElementById('controls');
+        let cursorTimeout;
+        let controlsTimeout;
+        let isTestRunning = false;
+
+        // Set the initial background color to white
+        document.body.style.backgroundColor = colors.white;
+
+        function changeColor(color) {
+            document.body.style.backgroundColor = color;
+        }
+
+        function startManualTest() {
+            isTestRunning = true;
+            hideControls();
+            document.body.style.backgroundColor = colorArray[manualIndex];
+
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            }
+
+            document.addEventListener('keydown', handleKeyPress);
+        }
+
+        function startAutoTest() {
+            isTestRunning = true;
+            let index = 0;
+            if (testInterval) clearInterval(testInterval);
+            hideControls();
+            testInterval = setInterval(() => {
+                document.body.style.backgroundColor = colorArray[index];
+                index = (index + 1) % colorArray.length;
+            }, 1000); // Change color every second
+
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            }
+
+            document.addEventListener('keydown', handleKeyPress);
+        }
+
+        function stopTest() {
+            isTestRunning = false;
+            if (testInterval) {
+                clearInterval(testInterval);
+                testInterval = null;
+            }
+            showControls();
+            document.removeEventListener('keydown', handleKeyPress);
+
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            }
+        }
+
+        function hideControls() {
+            if (isTestRunning) controls.classList.add('hidden');
+        }
+
+        function showControls() {
+            controls.classList.remove('hidden');
+        }
+
+        function handleKeyPress(event) {
+            if (event.code === 'Space' && isTestRunning) {
+                manualIndex = (manualIndex + 1) % colorArray.length;
+                document.body.style.backgroundColor = colorArray[manualIndex];
+            } else if (event.code === 'Escape' && isTestRunning) {
+                stopTest();
+            }
+        }
+
+        document.addEventListener('mousemove', () => {
+            document.body.style.cursor = 'default';
+            if (isTestRunning) showControls();
+
+            if (cursorTimeout) clearTimeout(cursorTimeout);
+            cursorTimeout = setTimeout(() => {
+                document.body.style.cursor = 'none';
+            }, 2000); // Hide cursor after 2 seconds of inactivity
+
+            if (controlsTimeout) clearTimeout(controlsTimeout);
+            controlsTimeout = setTimeout(() => {
+                hideControls();
+            }, 2000); // Hide controls after 2 seconds of inactivity
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement && isTestRunning) {
+                stopTest();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Escape') {
+                if (testInterval) {
+                    clearInterval(testInterval);
+                    testInterval = null;
+                }
+                stopTest();
+            }
+        });
+    </script>
+</body>
+</html>
